@@ -1,0 +1,416 @@
+---@type string
+local AddonName = ...
+---@class Data
+local Data = select(2, ...)
+
+-- Generator function for player count configs
+local function generatePlayerCountConfig(opts)
+  -- defaults
+  local faction = opts.faction or "Enemies" -- "Enemies" or "Allies"
+  local size = opts.size or "15man" -- "5man", "15man", or "40man"
+
+  -- Size parameters
+  local sizeParams = {
+    ["5man"] = {
+      minPlayerCount = 1,
+      maxPlayerCount = 5,
+      barHeight = 50,
+      barVerticalSpacing = 10,
+      barHorizontalSpacing = 5,
+      barColumns = 1,
+      healthBarHeight = 42,
+      powerHeight = 8,
+      framescale = 1.0,
+      drEnabled = true,
+      combatIndicatorEnabled = true,
+      specClassPriorityEnabled = true,
+      objectiveAndRespawnEnabled = false,
+      raidTargetIconEnabled = false,
+    },
+    ["15man"] = {
+      minPlayerCount = 6,
+      maxPlayerCount = 15,
+      barHeight = 35,
+      barVerticalSpacing = 2,
+      barHorizontalSpacing = 2,
+      barColumns = 1,
+      healthBarHeight = 30,
+      powerHeight = 5,
+      framescale = 1.0,
+      drEnabled = true,
+      combatIndicatorEnabled = true,
+      specClassPriorityEnabled = true,
+      objectiveAndRespawnEnabled = true,
+      raidTargetIconEnabled = false,
+    },
+    ["40man"] = {
+      minPlayerCount = 16,
+      maxPlayerCount = 40,
+      barHeight = 30,
+      barVerticalSpacing = 2,
+      barHorizontalSpacing = 2,
+      barColumns = 3,
+      healthBarHeight = 26,
+      powerHeight = 4,
+      framescale = 0.8,
+      drEnabled = false,
+      combatIndicatorEnabled = false,
+      specClassPriorityEnabled = false,
+      objectiveAndRespawnEnabled = false,
+      raidTargetIconEnabled = true,
+    },
+  }
+
+  local p = sizeParams[size]
+
+  -- Faction-dependent positioning
+  local isEnemies = faction == "Enemies"
+  local posX = isEnemies and ({ ["5man"] = 900, ["15man"] = 900, ["40man"] = 800 })[size] or ({ ["5man"] = 200, ["15man"] = 300, ["40man"] = 200 })[size]
+
+  return {
+    Enabled = (size == "5man" and false) or (size == "15man" and (isEnemies and true or false)) or (size == "40man" and (isEnemies and true or false)),
+    minPlayerCount = p.minPlayerCount,
+    maxPlayerCount = p.maxPlayerCount,
+
+    Position_X = posX,
+    Position_Y = 600,
+    BarWidth = (size == "40man" and 160) or 185,
+    BarHeight = p.barHeight,
+    BarVerticalGrowdirection = "downwards",
+    BarVerticalSpacing = p.barVerticalSpacing,
+    BarColumns = p.barColumns,
+    BarHorizontalGrowdirection = isEnemies and "leftwards" or "rightwards",
+    BarHorizontalSpacing = p.barHorizontalSpacing,
+
+    PlayerCount = {
+      Enabled = true,
+    },
+
+    ButtonModules = {
+      DRTracking = {
+        Enabled = p.drEnabled,
+        Parent = "Button",
+        ActivePoints = 1,
+        Points = {
+          {
+            Point = isEnemies and "RIGHT" or "LEFT",
+            RelativeFrame = "SpecClassPriority",
+            RelativePoint = isEnemies and "LEFT" or "RIGHT",
+            OffsetX = 0,
+          },
+        },
+        IconSize = 20,
+        Cooldown = {
+          FontSize = 13,
+          FontOutline = "OUTLINE",
+          ShowDRCount = true,
+        },
+        Container = {
+          UseButtonHeightAsSize = true,
+          IconSize = 15,
+          IconsPerRow = 10,
+          HorizontalGrowDirection = isEnemies and "leftwards" or "rightwards",
+          HorizontalSpacing = 2,
+          VerticalGrowdirection = "downwards",
+          VerticalSpacing = 1,
+        },
+      },
+      CombatIndicator = {
+        Enabled = p.combatIndicatorEnabled,
+        Points = {
+          {
+            Point = isEnemies and "RIGHT" or "LEFT",
+            RelativeFrame = "SpecClassPriority",
+            RelativePoint = isEnemies and "LEFT" or "RIGHT",
+            OffsetX = 0,
+            OffsetY = 0,
+          },
+        },
+      },
+      RaidTargetIcon = {
+        Enabled = p.raidTargetIconEnabled ~= false,
+        UseButtonHeightAsWidth = true,
+        UseButtonHeightAsHeight = true,
+        ActivePoints = 1,
+        Points = {
+          {
+            Point = "CENTER",
+            RelativeFrame = "healthBar",
+            RelativePoint = "CENTER",
+          },
+        },
+      },
+      SpecClassPriority = {
+        Enabled = p.specClassPriorityEnabled ~= false,
+        Cooldown = {
+          FontSize = 20,
+        },
+        Points = {
+          {
+            Point = isEnemies and "RIGHT" or "LEFT",
+            RelativeFrame = "Button",
+            RelativePoint = isEnemies and "LEFT" or "RIGHT",
+          },
+        },
+        UseButtonHeightAsHeight = true,
+        UseButtonHeightAsWidth = true,
+      },
+      Trinket = {
+        Enabled = p.specClassPriorityEnabled ~= false,
+        Points = {
+          {
+            Point = isEnemies and "LEFT" or "RIGHT",
+            RelativeFrame = "ObjectiveAndRespawn",
+            RelativePoint = isEnemies and "RIGHT" or "LEFT",
+          },
+        },
+        UseButtonHeightAsHeight = true,
+        UseButtonHeightAsWidth = true,
+      },
+      healthBar = {
+        Enabled = true,
+        Height = p.healthBarHeight,
+        UseButtonWidthAsWidth = true,
+        Points = {
+          {
+            Point = "TOP",
+            RelativeFrame = "Button",
+            RelativePoint = "TOP",
+            OffsetX = 0,
+            OffsetY = 0,
+          },
+        },
+      },
+      healthBarText = {
+        FontSize = 17,
+        JustifyH = "RIGHT",
+        JustifyV = "MIDDLE",
+        Points = {
+          {
+            Point = "RIGHT",
+            RelativeFrame = "healthBar",
+            RelativePoint = "RIGHT",
+            OffsetX = -4,
+          },
+        },
+      },
+      Power = {
+        Enabled = true,
+        Height = p.powerHeight,
+        UseButtonWidthAsWidth = true,
+        Points = {
+          {
+            Point = "TOP",
+            RelativeFrame = "healthBar",
+            RelativePoint = "BOTTOM",
+            OffsetX = 0,
+            OffsetY = 0,
+          },
+        },
+      },
+      Level = {
+        Enabled = false,
+        Points = {
+          {
+            Point = "RIGHT",
+            RelativeFrame = "healthBar",
+            RelativePoint = "RIGHT",
+            OffsetX = -4,
+          },
+        },
+        Text = {
+          FontSize = 18,
+          JustifyH = "CENTER",
+          JustifyV = "MIDDLE",
+        },
+      },
+      Name = {
+        Enabled = true,
+        UseButtonWidthAsWidth = true,
+        UseButtonHeightAsHeight = true,
+        Points = {
+          {
+            Point = "LEFT",
+            RelativeFrame = "Role",
+            RelativePoint = "RIGHT",
+            OffsetX = 4,
+          },
+        },
+        Text = {
+          FontSize = 12,
+          JustifyH = "LEFT",
+          JustifyV = "MIDDLE",
+        },
+      },
+      Role = {
+        Enabled = true,
+        Width = 12,
+        Height = 12,
+        Points = {
+          {
+            Point = "LEFT",
+            RelativeFrame = "healthBar",
+            RelativePoint = "LEFT",
+            OffsetX = 4,
+          },
+        },
+      },
+      ObjectiveAndRespawn = {
+        Enabled = p.objectiveAndRespawnEnabled,
+        Points = {
+          {
+            Point = isEnemies and "LEFT" or "RIGHT",
+            RelativeFrame = "Button",
+            RelativePoint = isEnemies and "RIGHT" or "LEFT",
+          },
+        },
+        UseButtonHeightAsWidth = true,
+        UseButtonHeightAsHeight = true,
+        Cooldown = {
+          FontSize = 12,
+        },
+        Text = {
+          FontSize = 17,
+          JustifyH = "CENTER",
+          JustifyV = "MIDDLE",
+        },
+      },
+    },
+
+    Framescale = p.framescale,
+  }
+end
+
+Data.defaultSettings = {
+  profile = {
+    Locked = false,
+    Debug = false,
+    DebugBlizzEvents = false,
+    DebugToSV = false,
+    DebugToSV_ResetOnPlayerLogin = false,
+    DebugToChat = false,
+    DebugToChat_AddTimestamp = false,
+
+    shareActiveProfile = false,
+
+    DisableArenaFramesInArena = false,
+    DisableArenaFramesInBattleground = false,
+
+    DisableRaidFramesInArena = false,
+    DisableRaidFramesInBattleground = false,
+
+    ShowBGEInArena = false,
+    ShowBGEInBattleground = true,
+
+    MyTarget_Color = { 1, 1, 1, 1 },
+    MyTarget_BorderSize = 2,
+    MyFocus_Color = { 0, 0.988235294117647, 0.729411764705882, 1 },
+    MyFocus_BorderSize = 2,
+    ShowTooltips = false,
+    EnableMouseWheelPlayerTargeting = false,
+    ConvertCyrillic = true,
+    DisableRoleCheckWarning = false,
+
+    PlayerCount = {
+      Text = {
+        FontSize = 14,
+        JustifyV = "MIDDLE",
+        JustifyH = "LEFT",
+      },
+    },
+
+    RoleSortingOrder = "HEALER_TANK_DAMAGER",
+
+    Cooldown = {
+      ShowNumber = true,
+      DrawSwipe = true,
+    },
+
+    Text = {
+      Font = "Friz Quadrata TT",
+      FontColor = { 241 / 255, 241 / 255, 241 / 255, 1 },
+      FontOutline = "",
+      EnableShadow = true,
+      ShadowColor = { 0, 0, 0, 0.8 },
+    },
+
+    RBG = {
+      TargetCalling_SetMark = false,
+      TargetCalling_NotificationEnable = false,
+      EnemiesTargetingMe_Enabled = false,
+      EnemiesTargetingMe_Amount = 5,
+      EnemiesTargetingAllies_Enabled = false,
+      EnemiesTargetingAllies_Amount = 5,
+    },
+
+    Enemies = {
+      Enabled = true,
+
+      CustomPlayerCountConfigsEnabled = false,
+
+      RangeIndicator_Enabled = true,
+      RangeIndicator_Range = 40,
+      RangeIndicator_Range_InCombat = 30,
+      RangeIndicator_Range_OutOfCombat = 40,
+      RangeIndicator_Alpha = 0.35,
+      RangeIndicator_Everything = true,
+      RangeIndicator_Frames = {},
+
+      ActionButtonUseKeyDown = false,
+      UseClique = false,
+
+      LeftButtonType = "Target",
+      LeftButtonValue = "",
+      RightButtonType = "Focus",
+      RightButtonValue = "",
+      MiddleButtonType = "Custom",
+      MiddleButtonValue = "",
+
+      playerCountConfigs = {
+        generatePlayerCountConfig({ faction = "Enemies", size = "5man" }),
+        generatePlayerCountConfig({ faction = "Enemies", size = "15man" }),
+        generatePlayerCountConfig({ faction = "Enemies", size = "40man" }),
+      },
+
+      customPlayerCountConfigs = {
+        ["**"] = generatePlayerCountConfig({ faction = "Enemies", size = "15man" }),
+      },
+    },
+
+    Allies = {
+      Enabled = true,
+
+      CustomPlayerCountConfigsEnabled = false,
+
+      RangeIndicator_Enabled = true,
+      RangeIndicator_Range = 40,
+      RangeIndicator_Range_InCombat = 40,
+      RangeIndicator_Range_OutOfCombat = 40,
+      RangeIndicator_Alpha = 0.55,
+      RangeIndicator_Everything = true,
+      RangeIndicator_Frames = {},
+
+      ActionButtonUseKeyDown = false,
+      UseClique = false,
+
+      LeftButtonType = "Target",
+      LeftButtonValue = "",
+      RightButtonType = "Focus",
+      RightButtonValue = "",
+      MiddleButtonType = "Custom",
+      MiddleButtonValue = "",
+
+      playerCountConfigs = {
+        generatePlayerCountConfig({ faction = "Allies", size = "5man" }),
+        generatePlayerCountConfig({ faction = "Allies", size = "15man" }),
+        generatePlayerCountConfig({ faction = "Allies", size = "40man" }),
+      },
+
+      customPlayerCountConfigs = {
+        ["**"] = generatePlayerCountConfig({ faction = "Allies", size = "15man" }),
+      },
+    },
+
+    ButtonModules = {},
+  },
+}
