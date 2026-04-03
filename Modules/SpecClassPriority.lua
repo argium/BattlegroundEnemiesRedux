@@ -349,18 +349,20 @@ local function attachToPlayerButton(playerButton)
     -- 2. IsSpellCrowdControl to verify, with simple issecretvalue(x) or x
     -- NOTE: Do NOT pass sort params — SecretArguments="AllowedWhenUntainted"
     -- means they fail silently from tainted addon code.
-    local auras = C_UnitAuras.GetUnitAuras(unitID, "HARMFUL|CROWD_CONTROL")
-    for _, aura in ipairs(auras) do
-      local durationObj = C_UnitAuras.GetAuraDuration(unitID, aura.auraInstanceID)
-      if durationObj then
-        local isCC = C_Spell.IsSpellCrowdControl(aura.spellId)
-        if issecretvalue(isCC) or isCC then
-          self.PriorityAuras[#self.PriorityAuras + 1] = {
-            icon = aura.icon,
-            Priority = 5,
-            durationObject = durationObj,
-            auraInstanceID = aura.auraInstanceID,
-          }
+    local ok, auras = pcall(C_UnitAuras.GetUnitAuras, unitID, "HARMFUL|CROWD_CONTROL")
+    if ok and auras then
+      for _, aura in ipairs(auras) do
+        local durationObj = C_UnitAuras.GetAuraDuration(unitID, aura.auraInstanceID)
+        if durationObj then
+          local isCC = C_Spell.IsSpellCrowdControl(aura.spellId)
+          if issecretvalue(isCC) or isCC then
+            self.PriorityAuras[#self.PriorityAuras + 1] = {
+              icon = aura.icon,
+              Priority = 5,
+              durationObject = durationObj,
+              auraInstanceID = aura.auraInstanceID,
+            }
+          end
         end
       end
     end
@@ -395,15 +397,26 @@ local function attachToPlayerButton(playerButton)
       return
     end
 
-    local checkAuras = C_UnitAuras.GetUnitAuras(unitID, "HARMFUL|CROWD_CONTROL")
+    local ok, checkAuras = pcall(C_UnitAuras.GetUnitAuras, unitID, "HARMFUL|CROWD_CONTROL")
+    if not ok or not checkAuras then
+      self._needsLocExpiryCheck = false
+      self._nextLocExpiryPoll = nil
+      wipe(self.PriorityAuras)
+      self:Update()
+      return
+    end
+
     if #checkAuras == 0 then
       -- If the local player is a ghost, GetUnitAuras returns empty for living
       -- units due to phase separation — use C_LossOfControl as backup check.
       if UnitIsDeadOrGhost("player") then
-        local locCount = C_LossOfControl
-            and C_LossOfControl.GetActiveLossOfControlDataCountByUnit
-            and C_LossOfControl.GetActiveLossOfControlDataCountByUnit(unitID)
-          or 0
+        local locCount = 0
+        if C_LossOfControl and C_LossOfControl.GetActiveLossOfControlDataCountByUnit then
+          local ok, count = pcall(C_LossOfControl.GetActiveLossOfControlDataCountByUnit, unitID)
+          if ok and count then
+            locCount = count
+          end
+        end
         if locCount > 0 then
           return
         end
